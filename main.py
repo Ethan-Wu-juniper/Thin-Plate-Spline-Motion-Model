@@ -7,7 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from skimage.transform import resize
-from IPython.display import HTML
 import warnings
 
 from demo import load_checkpoints, make_animation
