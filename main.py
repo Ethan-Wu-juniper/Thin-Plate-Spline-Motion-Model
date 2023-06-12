@@ -14,6 +14,7 @@ from skimage import img_as_ubyte
 
 import io
 from fastapi import FastAPI, File, UploadFile
+from pydantic import BaseModel
 
 warnings.filterwarnings("ignore")
 app = FastAPI()
