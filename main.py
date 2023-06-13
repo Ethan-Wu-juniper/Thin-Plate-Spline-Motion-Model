@@ -32,9 +32,9 @@ checkpoint_path = 'checkpoints/vox.pth.tar'
 predict_mode = 'relative' # ['standard', 'relative', 'avd']
 output_video_path = "test.mp4"
 
-pixel = 256 # for vox, taichi and mgif, the resolution is 256*256
-if(dataset_name == 'ted'): # for ted, the resolution is 384*384
-    pixel = 384
+# pixel = 256 # for vox, taichi and mgif, the resolution is 256*256
+# if(dataset_name == 'ted'): # for ted, the resolution is 384*384
+#     pixel = 384
 
 def read_video(videoUploadFile: UploadFile):
     tfile = tempfile.NamedTemporaryFile()
@@ -53,16 +53,11 @@ def read_video(videoUploadFile: UploadFile):
     return cv_frames, fps
 
 
-def process_video(source_image, driving_video, fps):
-    '''
-    Preprocess
-    '''
+def process_video(source_image, driving_video, fps, pixel):
     source_image = resize(source_image, (pixel, pixel))[..., :3]
     driving_video = [resize(frame, (pixel, pixel))[..., :3] for frame in driving_video]
 
-    '''
-    Inference
-    '''
+
     inpainting, kp_detector, dense_motion_network, avd_network = load_checkpoints(
         config_path = config_path, 
         checkpoint_path = checkpoint_path, 
@@ -84,25 +79,14 @@ def process_video(source_image, driving_video, fps):
     return predictions.tobytes(), predictions.shape
 
 
-class ImageResponse(BaseModel):
-    image_bytes: bytes
-    shape: tuple[int, int, int] = (256, 256, 3)
-    
-class VideoResponse(BaseModel):
-    video: list[bytes]
-
 @app.post("/process_video")
-# def process_video_route(image: UploadFile = File(...)):
-def process_video_route(image: UploadFile = File(...), video: UploadFile = File(...)):
-    # print(image.file.read())
+def process_video_route(image: UploadFile = File(...), video: UploadFile = File(...), size: int = 256):
     source_image = imageio.imread(io.BytesIO(image.file.read()))
     driving_video, fps = read_video(video)
-    # reader = imageio.get_reader(io.BytesIO(video.read()))
-
 
     print("image received")
 
-    predictions, output_shape = process_video(source_image, driving_video, fps)
+    predictions, output_shape = process_video(source_image, driving_video, fps, size)
 
     return FileResponse(output_video_path, media_type="video/mp4")
 
