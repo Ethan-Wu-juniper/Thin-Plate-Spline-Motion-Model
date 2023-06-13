@@ -87,7 +87,8 @@ class ImageResponse(BaseModel):
     shape: tuple[int, int, int] = (256, 256, 3)
     
 class VideoResponse(BaseModel):
-    video: list[ImageResponse]
+    video: list[bytes]
+    shape: tuple[int, int, int] = (256, 256, 3)
 
 @app.post("/process_video")
 # def process_video_route(image: UploadFile = File(...)):
@@ -100,9 +101,9 @@ def process_video_route(image: UploadFile = File(...), video: UploadFile = File(
 
     print("image received")
 
-    predictions = process_video(source_image, driving_video, fps)
+    predictions, output_shape = process_video(source_image, driving_video, fps)
 
     # return b'OK'
-    return VideoResponse(video=driving_video)
+    return VideoResponse(video=driving_video, shape=output_shape)
 
     # return VideoResponse(predictions)
