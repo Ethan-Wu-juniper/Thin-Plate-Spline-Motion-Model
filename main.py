@@ -29,6 +29,7 @@ dataset_name = 'vox' # ['vox', 'taichi', 'ted', 'mgif']
 config_path = 'config/vox-256.yaml'
 checkpoint_path = 'checkpoints/vox.pth.tar'
 predict_mode = 'relative' # ['standard', 'relative', 'avd']
+output_video_path = "test.mp4"
 
 pixel = 256 # for vox, taichi and mgif, the resolution is 256*256
 if(dataset_name == 'ted'): # for ted, the resolution is 384*384
@@ -38,6 +39,7 @@ def read_video(videoUploadFile: UploadFile):
     tfile = tempfile.NamedTemporaryFile()
     tfile.write(videoUploadFile.file.read())
     vf = cv2.VideoCapture(tfile.name)
+    fps = vf.get(cv2.CAP_PROP_FPS)
 
     cv_frames = []
     while True:
@@ -47,10 +49,10 @@ def read_video(videoUploadFile: UploadFile):
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         cv_frames.append(frame)
 
-    return cv_frames
+    return cv_frames, fps
 
 
-def process_video(source_image, driving_video):
+def process_video(source_image, driving_video, fps):
     '''
     Preprocess
     '''
@@ -76,6 +78,7 @@ def process_video(source_image, driving_video):
         device = device, 
         mode = predict_mode
     )
+    imageio.mimsave(output_video_path, [img_as_ubyte(frame) for frame in predictions], fps=fps)
     return [pred.tobytes() for pred in predictions], predictions[0].shape
 
 
@@ -91,15 +94,15 @@ class VideoResponse(BaseModel):
 def process_video_route(image: UploadFile = File(...), video: UploadFile = File(...)):
     # print(image.file.read())
     source_image = imageio.imread(io.BytesIO(image.file.read()))
-    driving_video = read_video(video)
+    driving_video, fps = read_video(video)
     # reader = imageio.get_reader(io.BytesIO(video.read()))
 
 
     print("image received")
 
-    predictions = process_video(source_image, driving_video)
+    predictions = process_video(source_image, driving_video, fps)
 
     # return b'OK'
-    return VideoResponse(driving_video)
+    return VideoResponse(video=driving_video)
 
     # return VideoResponse(predictions)
