@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "thin_plate_spline_motion_model"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.12"
 imageio = "^2.31.1"
 imageio-ffmpeg = "^0.4.8"
 matplotlib = "^3.7.1"
