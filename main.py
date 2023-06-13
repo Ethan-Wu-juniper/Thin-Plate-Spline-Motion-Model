@@ -104,6 +104,7 @@ def process_video_route(image: UploadFile = File(...), video: UploadFile = File(
     predictions, output_shape = process_video(source_image, driving_video, fps)
 
     # return b'OK'
-    return VideoResponse(video=driving_video, shape=output_shape)
+    return predictions
+    # return VideoResponse(video=predictions, shape=output_shape)
 
     # return VideoResponse(predictions)
