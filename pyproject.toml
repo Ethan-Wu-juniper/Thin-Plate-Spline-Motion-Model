@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "thin-plate-spline-motion-model"
+version = "0.1.0"
+description = ""
+authors = ["Ethan Wu <304-ethwu0816004@users.noreply.git.cs.nctu.edu.tw>"]
+readme = "README.md"
+packages = [{include = "thin_plate_spline_motion_model"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+imageio = "^2.31.1"
+imageio-ffmpeg = "^0.4.8"
+matplotlib = "^3.7.1"
+scikit-image = "^0.21.0"
+fastapi = "^0.97.0"
+pydantic = "^1.10.9"
+uvicorn = "^0.22.0"
+python-multipart = "^0.0.6"
+opencv-python = "^4.7.0.72"
+torch = "^2.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -15,47 +15,51 @@ from skimage import img_as_ubyte
 import io
 from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
+import tempfile
+import cv2
 
 warnings.filterwarnings("ignore")
 app = FastAPI()
 
-def process_video(source_image, reader):
-    '''
-    Variables
-    '''
-    device = torch.device('cuda:0')
-    dataset_name = 'vox' # ['vox', 'taichi', 'ted', 'mgif']
-    config_path = 'config/vox-256.yaml'
-    checkpoint_path = 'checkpoints/vox.pth.tar'
-    predict_mode = 'relative' # ['standard', 'relative', 'avd']
+'''
+Variables
+'''
+device = torch.device('cuda:0')
+dataset_name = 'vox' # ['vox', 'taichi', 'ted', 'mgif']
+config_path = 'config/vox-256.yaml'
+checkpoint_path = 'checkpoints/vox.pth.tar'
+predict_mode = 'relative' # ['standard', 'relative', 'avd']
 
-    pixel = 256 # for vox, taichi and mgif, the resolution is 256*256
-    if(dataset_name == 'ted'): # for ted, the resolution is 384*384
-        pixel = 384
+pixel = 256 # for vox, taichi and mgif, the resolution is 256*256
+if(dataset_name == 'ted'): # for ted, the resolution is 384*384
+    pixel = 384
 
+def read_video(videoUploadFile: UploadFile):
+    tfile = tempfile.NamedTemporaryFile()
+    tfile.write(videoUploadFile.file.read())
+    vf = cv2.VideoCapture(tfile.name)
+
+    cv_frames = []
+    while True:
+        ret, frame = vf.read()
+        if not ret:
+            break
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        cv_frames.append(frame)
+
+    return cv_frames
+
+
+def process_video(source_image, driving_video):
     '''
     Preprocess
     '''
-    # source_image = imageio.imread(source_image_path)
-    # reader = imageio.get_reader(driving_video_path)
-
     source_image = resize(source_image, (pixel, pixel))[..., :3]
-
-    fps = reader.get_meta_data()['fps']
-    driving_video = []
-    try:
-        for im in reader:
-            driving_video.append(im)
-    except RuntimeError:
-        pass
-    reader.close()
-
     driving_video = [resize(frame, (pixel, pixel))[..., :3] for frame in driving_video]
 
     '''
     Inference
     '''
-
     inpainting, kp_detector, dense_motion_network, avd_network = load_checkpoints(
         config_path = config_path, 
         checkpoint_path = checkpoint_path, 
@@ -72,12 +76,8 @@ def process_video(source_image, reader):
         device = device, 
         mode = predict_mode
     )
-    return [{"image_bytes": pred.tobytes(), "shape": pred.shape} for pred in predictions]
-    # imageio.mimsave(
-    #     output_video_path, 
-    #     [img_as_ubyte(frame) for frame in predictions], 
-    #     fps=fps
-    # )
+    return [pred.tobytes() for pred in predictions], predictions[0].shape
+
 
 class ImageResponse(BaseModel):
     image_bytes: bytes
@@ -87,10 +87,19 @@ class VideoResponse(BaseModel):
     video: list[ImageResponse]
 
 @app.post("/process_video")
+# def process_video_route(image: UploadFile = File(...)):
 def process_video_route(image: UploadFile = File(...), video: UploadFile = File(...)):
-    source_image = imageio.imread(io.BytesIO(image.read()))
-    reader = imageio.get_reader(io.BytesIO(video.read()))
+    # print(image.file.read())
+    source_image = imageio.imread(io.BytesIO(image.file.read()))
+    driving_video = read_video(video)
+    # reader = imageio.get_reader(io.BytesIO(video.read()))
 
-    predictions = process_video(source_image, reader)
 
-    return VideoResponse(predictions)
+    print("image received")
+
+    predictions = process_video(source_image, driving_video)
+
+    # return b'OK'
+    return VideoResponse(driving_video)
+
+    # return VideoResponse(predictions)
