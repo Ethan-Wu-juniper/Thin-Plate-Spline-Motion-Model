@@ -14,6 +14,7 @@ from skimage import img_as_ubyte
 
 import io
 from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import tempfile
 import cv2
@@ -79,7 +80,8 @@ def process_video(source_image, driving_video, fps):
         mode = predict_mode
     )
     imageio.mimsave(output_video_path, [img_as_ubyte(frame) for frame in predictions], fps=fps)
-    return [pred.tobytes() for pred in predictions], predictions[0].shape
+    predictions = np.array(predictions)
+    return predictions.tobytes(), predictions.shape
 
 
 class ImageResponse(BaseModel):
@@ -104,6 +106,10 @@ def process_video_route(image: UploadFile = File(...), video: UploadFile = File(
 
     # return b'OK'
     # return FileResponse(output_video_path, media_type="video/mp4")
+    def generate(vid_bytes):
+        yield from io.BytesIO(vid_bytes)
+        
+    return StreamingResponse(generate(predictions), media_type="video/mp4")
     return VideoResponse(video=predictions)
 
     # return VideoResponse(predictions)
