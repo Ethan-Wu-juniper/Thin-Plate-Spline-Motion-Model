@@ -14,7 +14,7 @@ from skimage import img_as_ubyte
 
 import io
 from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import tempfile
 import cv2
@@ -104,12 +104,9 @@ def process_video_route(image: UploadFile = File(...), video: UploadFile = File(
 
     predictions, output_shape = process_video(source_image, driving_video, fps)
 
-    # return b'OK'
-    # return FileResponse(output_video_path, media_type="video/mp4")
-    def generate(vid_bytes):
-        yield from io.BytesIO(vid_bytes)
-        
-    return StreamingResponse(generate(predictions), media_type="video/mp4")
-    return VideoResponse(video=predictions)
+    return FileResponse(output_video_path, media_type="video/mp4")
 
-    # return VideoResponse(predictions)
+    # def generate(vid_bytes):
+    #     yield from io.BytesIO(vid_bytes)
+
+    # return StreamingResponse(generate(predictions), media_type="video/mp4")
